@@ -28,6 +28,7 @@ import segmentation_models_pytorch as smp
 from tqdm import tqdm
 
 from dataset import BreastTumorPatchDataset, IGNORE_INDEX
+from wandb_utils import finish_wandb, log_wandb_metrics, setup_wandb
 
 
 # =========================
@@ -250,6 +251,28 @@ def main():
     print("Train samples:", len(train_ds))
     print("Val samples:", len(val_ds))
 
+    wandb_run = setup_wandb(
+        out_dir=OUT_DIR,
+        config={
+            "seed": SEED,
+            "patch_index_csv": PATCH_INDEX_CSV,
+            "num_classes": NUM_CLASSES,
+            "patch_size": PATCH_SIZE,
+            "batch_size": BATCH_SIZE,
+            "num_workers": NUM_WORKERS,
+            "epochs": EPOCHS,
+            "lr": LR,
+            "weight_decay": WEIGHT_DECAY,
+            "device": DEVICE,
+            "encoder_name": "resnet34",
+            "encoder_weights": "imagenet",
+            "train_samples": len(train_ds),
+            "val_samples": len(val_ds),
+            "output_dir": str(OUT_DIR),
+        },
+        tags=["breast", "unet", "4class", "roi"],
+    )
+
     train_loader = DataLoader(
         train_ds,
         batch_size=BATCH_SIZE,
@@ -388,6 +411,29 @@ def main():
             torch.save(last_ckpt, OUT_DIR / "best_dice.pth")
             print("Saved best_dice.pth")
 
+        log_wandb_metrics(
+            wandb_run,
+            {
+                "epoch": epoch,
+                "train/loss": train_loss,
+                "train/lr": current_lr,
+                "val/loss": val_loss,
+                "val/mean_iou": mean_iou,
+                "val/mean_dice": mean_dice,
+                "val/iou_background": float(val_ious[0]),
+                "val/iou_benign": float(val_ious[1]),
+                "val/iou_in_situ": float(val_ious[2]),
+                "val/iou_invasive": float(val_ious[3]),
+                "val/dice_background": float(val_dices[0]),
+                "val/dice_benign": float(val_dices[1]),
+                "val/dice_in_situ": float(val_dices[2]),
+                "val/dice_invasive": float(val_dices[3]),
+                "best/val_loss": best_val_loss,
+                "best/macro_dice": best_macro_dice,
+            },
+            step=epoch,
+        )
+
         # Append log
         with open(log_path, "a", encoding="utf-8") as f:
             f.write(
@@ -401,6 +447,15 @@ def main():
     print("Best val loss:", best_val_loss)
     print("Best macro dice:", best_macro_dice)
     print("Checkpoints saved to:", OUT_DIR)
+    finish_wandb(
+        wandb_run,
+        summary={
+            "best_val_loss": best_val_loss,
+            "best_macro_dice": best_macro_dice,
+            "output_dir": str(OUT_DIR),
+            "train_log_csv": str(log_path),
+        },
+    )
 
 
 if __name__ == "__main__":
