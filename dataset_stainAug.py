@@ -7,6 +7,8 @@
 ---
 當 DataLoader 要第 i 筆資料時，根據 patch_index.csv 的第 i 列，
 去 H&E、mask、ROI 中切出對應 patch，轉成 PyTorch tensor 回傳。
+---
+這是有加stain augmentation的版本，會在訓練時隨機改變 H&E stain 的顏色。
 """
 from pathlib import Path
 from typing import Optional
@@ -281,7 +283,7 @@ class BreastTumorPatchDataset(Dataset):
         k = random.randint(0, 3)
         if k > 0:
             image = np.rot90(image, k, axes=(0, 1)).copy()
-            mask = np.rot90(mask, k, axes=(0, 1)).copy()f
+            mask = np.rot90(mask, k, axes=(0, 1)).copy()
             roi = np.rot90(roi, k, axes=(0, 1)).copy()
 
         return image, mask, roi 

@@ -14,6 +14,8 @@ H&E RGB patch, shape [B, 3, 512, 512]
 Target:
 mask patch, shape [B, 512, 512]
 values = 0, 1, 2, 3, or 255
+---
+這是有用stain augmentation的版本
 """
 
 from pathlib import Path
@@ -30,7 +32,7 @@ from torch.utils.data import DataLoader
 import segmentation_models_pytorch as smp
 from tqdm import tqdm
 
-from dataset import BreastTumorPatchDataset, IGNORE_INDEX
+from dataset_stainAug import BreastTumorPatchDataset, IGNORE_INDEX
 from wandb_utils import finish_wandb, log_wandb_metrics, setup_wandb
 
 
